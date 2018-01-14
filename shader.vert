@@ -5,7 +5,8 @@ layout(location = 0) in vec3 position;
 // Data from CPU 
 uniform mat4 MVP; // ModelViewProjection Matrix
 uniform mat4 MV; // ModelView idMVPMatrix
-uniform vec4 cameraPosition;
+uniform vec3 cameraPosition;
+uniform vec3 lightPosition;
 uniform float heightFactor;
 
 // Texture-related data
@@ -25,13 +26,27 @@ void main()
 {
 
     // get texture value, compute height
+    float u = (1.0 - position.x);
+    float v = (1.0 - position.z);
+    vec2 texCoods; texCoods.x = u; texCoods.y = v;
+    vec4 textureColor = texture(rgbTexture, texCoods);
+    float height = heightFactor * (0.2126 * textureColor.x + 0.7152 * textureColor.y + 0.0722 * textureColor.z);
+    textureCoordinate.x = u;
+    textureCoordinate.y = v;
+    
     // compute normal vector using also the heights of neighbor vertices
+    //////////////////////////////////
+    // COMPUTE NORMALS FOR LIGHTING
+    ////////////////////////////////
 
     // compute toLight vector vertex coordinate in VCS
-   
-   // set gl_Position variable correctly to give the transformed vertex position
+    ////////////////////////////
+    //  MAYBE WE NEED TO MULTIPLY POSITION BY MV MATRIX  
+    /////////////////////////////
+    ToLightVector = lightPosition - position;
+    ToCameraVector = cameraPosition - position;
 
-   //gl_Position = vec4(0,0,0,0); // this is a placeholder. It does not correctly set the position 
-   vec3 newPos = vec3(position.x * widthTexture,0.0, position.z*heightTexture);
-   gl_Position = MVP * vec4(newPos, 1.0f);    
+    // set gl_Position variable correctly to give the transformed vertex position
+    vec3 newPos = vec3(position.x * widthTexture, height, position.z * heightTexture);
+    gl_Position = MVP * vec4(newPos, 1.0f);
 }

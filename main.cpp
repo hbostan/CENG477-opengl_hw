@@ -37,7 +37,7 @@ void initCamera() {
   camera.gaze = glm::vec3(0, 0, 1);
   camera.up = glm::vec3(0, 1, 0);
   camera.right = glm::cross(-camera.gaze, camera.up);
-  camera.fov = glm::radians(45.0f);
+  camera.fov = 45.0f;
   camera.aspectRatio = 1.0f;
   camera.near = 0.1f;
   camera.far = 1000.0f;
@@ -50,6 +50,46 @@ void setCamera() {
   glm::mat4 mvp = perspective*view*model;
   GLuint matrixId = glGetUniformLocation(idProgramShader, "MVP");
   glUniformMatrix4fv(matrixId, 1, GL_FALSE, &mvp[0][0]);
+}
+
+void fillVertices(int textureHeight, int textureWidth, GLfloat* vertexArray) {
+  float widthChange = 1.0 / textureWidth;
+  float heightChange = 1.0 / textureHeight;
+  
+  long k = 0;
+  for(int i=0; i<textureHeight; i++) {
+    for(int j=0; j<textureWidth; j++) {
+      // First triangle
+      vertexArray[k++] = (j + 1) * widthChange;  // x of top right
+      vertexArray[k++] = 0.0f;  // y of top right
+      vertexArray[k++] = i * heightChange; // z of top right
+
+      vertexArray[k++] = j* widthChange;  // x of top left
+      vertexArray[k++] = 0.0f;  // y of top left
+      vertexArray[k++] = i* heightChange; // z of top left
+
+      vertexArray[k++] = j* widthChange;  // x of bottom left
+      vertexArray[k++] = 0.0f;  // y of bottom left
+      vertexArray[k++] = (i + 1)* heightChange;  // z of bottom left
+
+      // Second Triangle
+
+      vertexArray[k++] = j* widthChange;  // x of bottom left
+      vertexArray[k++] = 0.0f;  // y of bottom left
+      vertexArray[k++] = (i + 1)* heightChange;  // z of bottom left
+
+      vertexArray[k++] = (j + 1)* widthChange;  // x of bottom right
+      //std::cout << vertexArray[k-1] << "   ";
+      vertexArray[k++] = 0.0f;  // y of bottom right
+      vertexArray[k++] = (i+1)* heightChange;  // z of bottom right
+      //std::cout << vertexArray[k-1] << std::endl;
+
+      vertexArray[k++] = (j + 1)* widthChange;  // x of top right
+      vertexArray[k++] = 0.0f;  // y of top right
+      vertexArray[k++] = i* heightChange; // z of top right
+      
+    }
+  }
 }
 
 int main(int argc, char *argv[]) {
@@ -84,75 +124,47 @@ int main(int argc, char *argv[]) {
       exit(-1);
   }
 
-  
-
   initShaders();
   glUseProgram(idProgramShader);
+
+  GLuint textureWidth_shader = glGetUniformLocation(idProgramShader, "widthTexture");
+  GLuint textureHeight_shader = glGetUniformLocation(idProgramShader, "heightTexture");
+  GLuint heightFactor_shader = glGetUniformLocation(idProgramShader, "heightFactor");
+  GLuint cameraPosition_shader = glGetUniformLocation(idProgramShader, "cameraPosition");
+  GLuint lightPosition_shader = glGetUniformLocation(idProgramShader, "lightPosition");
+
   initTexture(argv[1], &textureWidth, &textureHeight);
   std::cout << textureWidth<< " " << textureHeight << std::endl;  
+  
   initCamera();
+  GLfloat camPos[] = {camera.position.x, camera.position.y, camera.position.z};
+  glUniform3fv(cameraPosition_shader, 1, camPos);
 
-  GLuint widthTex = glGetUniformLocation(idProgramShader, "widthTexture");
-	GLuint heightTex = glGetUniformLocation(idProgramShader, "heightTexture");
-  
+  glUniform1i(textureWidth_shader, textureWidth);  // Texture width
+  glUniform1i(textureHeight_shader, textureHeight);// Texture height
+  glUniform1f(heightFactor_shader, 10.0); // Set height factor
 
-	glUniform1i(widthTex, textureWidth);
-  glUniform1i(heightTex, textureHeight);
+  glEnable(GL_LIGHTING);
+  glEnable(GL_LIGHT0);
+  GLfloat lightColor[] = {1.0, 1.0, 1.0, 1.0};
+  GLfloat lightPosition[] = { textureWidth/2.0, textureWidth+textureHeight, textureHeight/2.0, 1.0f};
+  glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
+  glLightfv(GL_LIGHT0, GL_AMBIENT, lightColor);
+  glLightfv(GL_LIGHT0, GL_DIFFUSE, lightColor);
+  glLightfv(GL_LIGHT0, GL_SPECULAR, lightColor);
+  glUniform3fv(lightPosition_shader, 1, lightPosition);
   
-  
-
   long triangleCount = textureWidth * textureHeight * 2;
   long vertexCount = triangleCount*3;
   long coordinateCount = vertexCount * 3;
   long vertexArraySizeInBytes = sizeof(GLfloat) * coordinateCount;
   GLfloat* vertexArray = new GLfloat[coordinateCount];
-
-  float widthChange = 1.0 / textureWidth;
-  float heightChange = 1.0 / textureHeight;
   std::cout << coordinateCount <<std::endl;
-  long k = 0;
-  for(int i=0; i<textureHeight; i++) {
-    for(int j=0; j<textureWidth; j++) {
-      // First triangle
-      vertexArray[k++] = (j + 1) * widthChange;  // x of top right
-      vertexArray[k++] = 0.0f;  // y of top right
-      vertexArray[k++] = i * heightChange; // z of top right
-
-      vertexArray[k++] = j* widthChange;  // x of top left
-      vertexArray[k++] = 0.0f;  // y of top left
-      vertexArray[k++] = i* heightChange; // z of top left
-
-      vertexArray[k++] = j* widthChange;  // x of bottom left
-      vertexArray[k++] = 0.0f;  // y of bottom left
-      vertexArray[k++] = (i + 1)* heightChange;  // z of bottom left
-
-      // Second Triangle
-
-      vertexArray[k++] = j* widthChange;  // x of bottom left
-      vertexArray[k++] = 0.0f;  // y of bottom left
-      vertexArray[k++] = (i + 1)* heightChange;  // z of bottom left
-
-      vertexArray[k++] = (j + 1)* widthChange;  // x of bottom right
-      vertexArray[k++] = 0.0f;  // y of bottom right
-      vertexArray[k++] = (i+1)* heightChange;  // z of bottom right
-
-      vertexArray[k++] = (j + 1)* widthChange;  // x of top right
-      vertexArray[k++] = 0.0f;  // y of top right
-      vertexArray[k++] = i* heightChange; // z of top right
-    }
-  }
-
-  static const GLfloat g_vertex_buffer_data[] = {
-		0, 0, 0,
-		500,  0, 100,
-		700,  0, 100,
-	};
-
+  fillVertices(textureHeight, textureWidth, vertexArray);
 
   GLuint vertexbuffer;
 	glGenBuffers(1, &vertexbuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-	//glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
   glBufferData(GL_ARRAY_BUFFER, vertexArraySizeInBytes, vertexArray, GL_STATIC_DRAW);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
   setCamera();
@@ -177,3 +189,5 @@ int main(int argc, char *argv[]) {
 
   return 0;
 }
+
+

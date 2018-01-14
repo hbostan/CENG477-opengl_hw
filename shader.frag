@@ -22,6 +22,7 @@ void main() {
 
   // Assignment Constants below
   // get the texture color
+  
   vec4 textureColor = texture(rgbTexture, textureCoordinate);
 
   // apply Phong shading by using the following parameters
@@ -36,11 +37,11 @@ void main() {
   // compute ambient component
   vec4 ambient = vec4(0, 0, 0, 0);
   // compute diffuse component
-  vec4 diffuse = vec4(0, 0, 0, 0);
+  vec4 diffuse = vec4(1, 1, 1, 1);
   // compute specular component
   vec4 specular = vec4(0, 0, 0, 0);
 
   // compute the color using the following equation
-  //color = vec4(clamp( textureColor.xyz * vec3(ambient + diffuse + specular), 0.0, 1.0), 1.0);
-  color = vec4(1.0, 1.0, 1.0, 1.0);
+  color = vec4(clamp( textureColor.xyz * vec3(ambient + diffuse + specular), 0.0, 1.0), 1.0);
+  //color = vec4(1.0, 1.0, 1.0, 1.0);
 }
