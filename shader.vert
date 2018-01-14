@@ -33,5 +33,5 @@ void main()
 
    //gl_Position = vec4(0,0,0,0); // this is a placeholder. It does not correctly set the position 
    vec3 newPos = vec3(position.x * widthTexture,0.0, position.z*heightTexture);
-   gl_Position = MVP * vec4(position, 1.0f);    
+   gl_Position = MVP * vec4(newPos, 1.0f);    
 }
