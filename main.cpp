@@ -5,6 +5,11 @@
 
 static GLFWwindow* win = NULL;
 static boolean fullscreen = false;
+int windowWidth;
+int windowHeight;
+int windowPosX;
+int windowPosY;
+float windowAspect;
 
 typedef struct Camera {
   glm::vec3 position;
@@ -39,12 +44,12 @@ static void errorCallback(int error, const char* description)
 }
 
 void initCamera() {
-  //camera.position = glm::vec3(textureWidth/2.0, textureWidth/10.0, -textureWidth/4.0);
-  //camera.gaze = glm::vec3(0, 0, 1);
-  //camera.up = glm::vec3(0, 1, 0);
-  camera.position = glm::vec3(450.0, 19.0, 150.0);
-  camera.gaze = glm::vec3(-0.17, -0.18, 0.97);
-  camera.up = glm::vec3(0.002, 0.98, 0.2);
+  camera.position = glm::vec3(textureWidth/2.0, textureWidth/10.0, -textureWidth/4.0);
+  camera.gaze = glm::vec3(0, 0, 1);
+  camera.up = glm::vec3(0, 1, 0);
+  //camera.position = glm::vec3(450.0, 19.0, 150.0);
+  //camera.gaze = glm::vec3(-0.17, -0.18, 0.97);
+  //camera.up = glm::vec3(0.002, 0.98, 0.2);
  
   camera.right = glm::cross(-camera.gaze, camera.up);
   camera.fov = 45.0f;
@@ -54,15 +59,6 @@ void initCamera() {
   camera.speed = 0.0f;
 }
 
-void reshape(GLFWwindow* win, int w, int h) {
-  w = w < 1 ? 1 : w;
-  h = h < 1 ? 1 : h;
-
-  screenWidth = w;
-  screenHeight = h;
-
-  glViewport(0, 0, w, h);
-}
 
 void setCamera() {
   glm::mat4 model = glm::mat4(1.0f);
@@ -96,10 +92,9 @@ void updateCameraVectors(int dir) {
     default:
       break;
   }
-  std::cout << "Pos: "<< camera.position.x << ", "<< camera.position.y << ", "<<camera.position.z<<"\n";
-  std::cout << "Gaze: "<< camera.gaze.x << ", "<< camera.gaze.y << ", "<<camera.gaze.z<<"\n";
-  std::cout << "Up: "<< camera.up.x << ", "<< camera.up.y << ", "<<camera.up.z<<"\n--------------\n";
-
+  //std::cout << "Pos: "<< camera.position.x << ", "<< camera.position.y << ", "<<camera.position.z<<"\n";
+  //std::cout << "Gaze: "<< camera.gaze.x << ", "<< camera.gaze.y << ", "<<camera.gaze.z<<"\n";
+  //std::cout << "Up: "<< camera.up.x << ", "<< camera.up.y << ", "<<camera.up.z<<"\n--------------\n";
 }
 
 void rotateVector(float angle, glm::vec3& original, glm::vec3& direction)
@@ -144,28 +139,39 @@ void rotateVector(float angle, glm::vec3& original, glm::vec3& direction)
     original = result;
 
 }
+void reshape(GLFWwindow* win, int w, int h) {
+  w = w < 1 ? 1 : w;
+  h = h < 1 ? 1 : h;
+
+  screenWidth = w;
+  screenHeight = h;
+
+  glViewport(0, 0, w, h);
+  
+  // DISABLE FOR NO ASPECT RATIO CHANGE
+  windowAspect = (float)w /(float)h;
+  camera.aspectRatio = windowAspect;
+  setCamera();
+}
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
     glfwSetWindowShouldClose(win, GLFW_TRUE);
 
-  // fullscreen
   else if (key == GLFW_KEY_F && action == GLFW_PRESS) {
-    std::cout << "Fullscreen" << std::endl;
     if(!fullscreen){
       fullscreen = true;
+      glfwGetWindowSize(win, &windowWidth, &windowHeight);
+      glfwGetWindowPos(win, &windowPosX, &windowPosY);
       GLFWmonitor* monitor = glfwGetPrimaryMonitor();
       const GLFWvidmode* mode = glfwGetVideoMode(monitor);
-      std::cout << "Monitor: " << mode->width << " " << mode->height << " " << mode->refreshRate << std::endl;
       glfwSetWindowMonitor(win, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
     } else if (fullscreen) {
       fullscreen = false;
-      glfwSetWindowMonitor(win, NULL, 100, 100, 600, 600, 0);
+      glfwSetWindowMonitor(win, NULL, windowPosX, windowPosY, windowWidth, windowHeight, 0);
     }
   }
-
-	// yaw
 	else if (key == GLFW_KEY_A && action != GLFW_RELEASE) {//== GLFW_PRESS) {
     rotateVector(1.0, camera.gaze, camera.up);
     updateCameraVectors(1);
@@ -174,14 +180,12 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
     rotateVector(-1.0, camera.gaze, camera.up);
     updateCameraVectors(1);
   }
-		
-	// pitch
 	else if (key == GLFW_KEY_W && action != GLFW_RELEASE) {//== GLFW_PRESS) {
-		rotateVector(1.0, camera.gaze, camera.right);
+		rotateVector(-1.0, camera.gaze, camera.right);
     updateCameraVectors(0);
   }
 	else if (key == GLFW_KEY_S && action != GLFW_RELEASE) {//== GLFW_PRESS) {
-    rotateVector(-1.0, camera.gaze, camera.right);
+    rotateVector(1.0, camera.gaze, camera.right);
     updateCameraVectors(0);
   }
 
@@ -194,9 +198,6 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 		heightFactor += 0.5;
 	else if (key == GLFW_KEY_L && action == GLFW_PRESS)
 		heightFactor -= 0.5;
-
-	else
-		;
 }
 
 void fillVertices(int textureHeight, int textureWidth, GLfloat* vertexArray) {
@@ -207,40 +208,38 @@ void fillVertices(int textureHeight, int textureWidth, GLfloat* vertexArray) {
   for(int i=0; i<textureHeight; i++) {
     for(int j=0; j<textureWidth; j++) {
       // First triangle
-      vertexArray[k++] = (j + 1) * widthChange;  // x of top right
+      vertexArray[k++] = (j + 1.0);  // x of top right
       vertexArray[k++] = 0.0f;  // y of top right
-      vertexArray[k++] = i * heightChange; // z of top right
+      vertexArray[k++] = i; // z of top right
 
-      vertexArray[k++] = j* widthChange;  // x of top left
+      vertexArray[k++] = j;  // x of top left
       vertexArray[k++] = 0.0f;  // y of top left
-      vertexArray[k++] = i* heightChange; // z of top left
+      vertexArray[k++] = i; // z of top left
 
-      vertexArray[k++] = j* widthChange;  // x of bottom left
+      vertexArray[k++] = j;  // x of bottom left
       vertexArray[k++] = 0.0f;  // y of bottom left
-      vertexArray[k++] = (i + 1)* heightChange;  // z of bottom left
+      vertexArray[k++] = (i + 1.0);  // z of bottom left
 
       // Second Triangle
 
-      vertexArray[k++] = j* widthChange;  // x of bottom left
+      vertexArray[k++] = j;  // x of bottom left
       vertexArray[k++] = 0.0f;  // y of bottom left
-      vertexArray[k++] = (i + 1)* heightChange;  // z of bottom left
+      vertexArray[k++] = (i + 1.0);  // z of bottom left
 
-      vertexArray[k++] = (j + 1)* widthChange;  // x of bottom right
-      //std::cout << vertexArray[k-1] << "   ";
+      vertexArray[k++] = (j + 1.0);  // x of bottom right
       vertexArray[k++] = 0.0f;  // y of bottom right
-      vertexArray[k++] = (i+1)* heightChange;  // z of bottom right
-      //std::cout << vertexArray[k-1] << std::endl;
+      vertexArray[k++] = (i+1.0);  // z of bottom right
 
-      vertexArray[k++] = (j + 1)* widthChange;  // x of top right
+      vertexArray[k++] = (j + 1.0);  // x of top right
       vertexArray[k++] = 0.0f;  // y of top right
-      vertexArray[k++] = i* heightChange; // z of top right
+      vertexArray[k++] = i; // z of top right
       
     }
   }
 }
 
 int main(int argc, char *argv[]) {
-  screenWidth = screenHeight = 600;
+  windowHeight = windowWidth = 600;
   if (argc != 2) {
     printf("Please provide only a texture image\n");
     exit(-1);
@@ -256,7 +255,7 @@ int main(int argc, char *argv[]) {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 
-  win = glfwCreateWindow(screenWidth, screenHeight, "CENG477 - HW4", NULL, NULL);
+  win = glfwCreateWindow(windowWidth, windowHeight, "CENG477 - HW4", NULL, NULL);
 
   if (!win) {
       glfwTerminate();
@@ -282,8 +281,7 @@ int main(int argc, char *argv[]) {
   GLuint lightPosition_shader = glGetUniformLocation(idProgramShader, "lightPosition");
 
   initTexture(argv[1], &textureWidth, &textureHeight);
-  std::cout << textureWidth<< " " << textureHeight << std::endl;  
-  
+
   initCamera();
   setCamera();
   GLfloat camPos[] = {camera.position.x, camera.position.y, camera.position.z};
@@ -293,16 +291,7 @@ int main(int argc, char *argv[]) {
   glUniform1i(textureHeight_shader, textureHeight);// Texture height
   glUniform1f(heightFactor_shader, heightFactor); // Set height factor
 
-  /////// NOT SURE IF EVEN NEEDED
-  //glEnable(GL_LIGHTING);
-  //glEnable(GL_LIGHT0);
-  //GLfloat lightColor[] = {1.0, 1.0, 1.0, 1.0};
-  //GLfloat lightPosition[] = { textureWidth/2.0, textureWidth+textureHeight, textureHeight/2.0, 1.0f};
-  //glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
-  //glLightfv(GL_LIGHT0, GL_AMBIENT, lightColor);
-  //glLightfv(GL_LIGHT0, GL_DIFFUSE, lightColor);
-  //glLightfv(GL_LIGHT0, GL_SPECULAR, lightColor);
-  GLfloat lightPosition[] = { textureWidth/2.0, textureWidth+textureHeight, textureHeight/2.0, 1.0f};
+  GLfloat lightPosition[] = { (float)textureWidth/2.0f, (float)textureWidth+(float)textureHeight, (float)textureHeight/2.0f, 1.0f};
   glUniform3fv(lightPosition_shader, 1, lightPosition);
   
   long triangleCount = textureWidth * textureHeight * 2;
@@ -310,7 +299,6 @@ int main(int argc, char *argv[]) {
   long coordinateCount = vertexCount * 3;
   long vertexArraySizeInBytes = sizeof(GLfloat) * coordinateCount;
   GLfloat* vertexArray = new GLfloat[coordinateCount];
-  std::cout << coordinateCount <<std::endl;
   fillVertices(textureHeight, textureWidth, vertexArray);
 
   GLuint vertexbuffer;
@@ -334,7 +322,6 @@ int main(int argc, char *argv[]) {
 
     camera.position = camera.position + (camera.gaze * camera.speed);
     setCamera();
-    //std::cout << camera.position.x <<" "<< camera.position.y <<" "<<camera.position.z<<std::endl;
     GLfloat newPos[] = {camera.position.x, camera.position.y, camera.position.z};
     glUniform3fv(cameraPosition_shader, 1, newPos);//set camera pos
 

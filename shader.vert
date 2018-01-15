@@ -23,14 +23,8 @@ out vec3 ToLightVector; // Vector from Vertex to Light;
 out vec3 ToCameraVector; // Vector from Vertex to Camera;
 
 float getHeight(vec2 p) {
-    p.x = clamp(p.x, 0.0, 1.0);
-    p.y = clamp(p.y, 0.0, 1.0);
     vec3 c = texture(rgbTexture, p).xyz;
     return (heightFactor * (0.2126 * c.x + 0.7152 * c.y + 0.0722 * c.z));
-}
-
-vec3 getWorldCoordinates(vec2 uv, vec3 position) {
-    return vec3(position.x* widthTexture, getHeight(uv), position.z * heightTexture);
 }
 
 vec3 getTriangleNormal(vec3 a, vec3 b, vec3 c) {
@@ -39,32 +33,65 @@ vec3 getTriangleNormal(vec3 a, vec3 b, vec3 c) {
     return normalize(cross(v1,v2));
 }
 
+vec2 getTextureCoords(vec3 p) {
+    return vec2(1.0-(p.x/widthTexture), 1.0-(p.z/heightTexture));
+}
+
+bool inGrid(vec3 p) {
+    bool res = (position.x >= 0 && position.x <= widthTexture) && (position.z >= 0 && position.z <= heightTexture);
+    return res;
+}
+
 
 void main()
 {
-    vec3 lightPosMV = vec3(MV * vec4(lightPosition,1.0));
-    
     // get texture value, compute height
-    float u = clamp((1.0 - position.x), 0.0, 1.0);
-    float v = clamp((1.0 - position.z), 0.0, 1.0);
-    vec2 texCoods = vec2(u, v);
-    textureCoordinate = texCoods;
-    vec3 worldPos = getWorldCoordinates(texCoods, position);
+    textureCoordinate = getTextureCoords(position);
+    vec3 worldPos = position;
+    worldPos.y = getHeight(textureCoordinate);
     
     vec3 vertexVCS = vec3(MV * vec4(worldPos, 1.0));
+    vec3 lightPosMV = vec3(MV * vec4(lightPosition,1.0));
     ToLightVector = normalize((lightPosMV - vertexVCS).xyz);
     ToCameraVector = normalize((- vertexVCS).xyz);
 
-    //vertexNormal = vec3(0.0, 0.0, 0.0);
-    //vec2 left = vec2(texCoods.x - (1.0/widthTexture), texCoods.y); 
-    //vec2 right = vec2(texCoods.x + (1.0/widthTexture), texCoods.y);
-    //vec2 up = vec2(texCoods.x, texCoods.y - (1.0/heightTexture));
-    //vec2 down = vec2(texCoods.x, texCoods.y + (1.0/heightTexture));
-    // compute normal vector using also the heights of neighbor vertices
+    vertexNormal = vec3(0,0,0);
+    
+    vec3 right = vec3(position.x + 1.0, position.y, position.z);
+    if(inGrid(right)) {
+        right.y = getHeight(getTextureCoords(right));
+        vec3 up = vec3(position.x, position.y, position.z + 1.0);
+        if(inGrid(up)) {
+            up.y = getHeight(getTextureCoords(up));
+            vertexNormal += getTriangleNormal(worldPos, right, up);
+        }
+        vec3 down = vec3(position.x, position.y, position.z - 1.0);
+        if(inGrid(down)) {
+            down.y = getHeight(getTextureCoords(down));
+            vertexNormal += getTriangleNormal(worldPos, down, right);
+        }
+    }
+
+    vec3 left = vec3(position.x - 1.0, position.y, position.z);
+    if(inGrid(left)) {
+        left.y = getHeight(getTextureCoords(left));
+        vec3 up = vec3(position.x, position.y, position.z + 1.0);
+        if(inGrid(up)) {
+            up.y = getHeight(getTextureCoords(up));
+            vertexNormal += getTriangleNormal(worldPos, up, left);
+        }
+        vec3 down = vec3(position.x, position.y, position.z - 1.0);
+        if(inGrid(down)) {
+            down.y = getHeight(getTextureCoords(down));
+            vertexNormal += getTriangleNormal(worldPos, left, down);
+        }
+    }
+
+    vertexNormal = normalize(vec3(MVI* vec4(normalize(vertexNormal), 0.0)));
     //////////////////////////////////
     // COMPUTE NORMALS FOR LIGHTING
     ////////////////////////////////    
-    vec2 left = vec2(texCoods.x - (1.0/widthTexture), texCoods.y); 
+    /*vec2 left = vec2(texCoods.x - (1.0/widthTexture), texCoods.y); 
     left.x = clamp(left.x, 0.0, 1.0);
     left.y = clamp(left.y, 0.0, 1.0);
 
@@ -88,17 +115,6 @@ void main()
 
     vec3 normal = vec3(lh-rh, scaleXZ, uh-dh);
     vertexNormal = normalize(vec3(MVI*vec4(normalize(normal), 0.0)));
-    
-    // compute toLight vector vertex coordinate in VCS
-    ////////////////////////////
-    //  MAYBE WE NEED TO MULTIPLY POSITION BY MV MATRIX  
-    /////////////////////////////
-
-    //ToLightVector = normalize(lightPosition - newPos);
-    //ToCameraVector = normalize(cameraPosition - newPos);
-
-    // set gl_Position variable correctly to give the transformed vertex position
-    //vec3 newPos = vec3(position.x * widthTexture, height, position.z * heightTexture);
-    
+    */
     gl_Position = MVP * vec4(worldPos, 1.0f);
 }
