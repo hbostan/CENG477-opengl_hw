@@ -34,12 +34,17 @@ void main() {
   vec4 ks = vec4(1.0, 1.0, 1.0, 1.0); // reflectance coeff. for specular
   int specExp = 100; // specular exponent
 
+  vec3 halfVec = normalize(vec3(ToLightVector + ToCameraVector));
+
+  float cosNormalLight = max(0.0, dot(ToLightVector, vertexNormal));
+  float cosNormalHalf = max(0.0, dot(halfVec, vertexNormal));
+
   // compute ambient component
-  vec4 ambient = vec4(0, 0, 0, 0);
+  vec4 ambient = Ia * ka;//vec4(0, 0, 0, 0);
   // compute diffuse component
-  vec4 diffuse = vec4(1, 1, 1, 1);
+  vec4 diffuse = Id * kd * cosNormalLight; //vec4(1, 1, 1, 1);
   // compute specular component
-  vec4 specular = vec4(0, 0, 0, 0);
+  vec4 specular = Is * ks * pow(cosNormalHalf,specExp); //vec4(0, 0, 0, 0);
 
   // compute the color using the following equation
   color = vec4(clamp( textureColor.xyz * vec3(ambient + diffuse + specular), 0.0, 1.0), 1.0);
