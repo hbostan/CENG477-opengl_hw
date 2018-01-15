@@ -34,7 +34,7 @@ void main() {
   vec4 ks = vec4(1.0, 1.0, 1.0, 1.0); // reflectance coeff. for specular
   int specExp = 100; // specular exponent
 
-  vec3 halfVec = normalize(vec3(ToLightVector + ToCameraVector));
+  vec3 halfVec = normalize(ToLightVector + ToCameraVector);
 
   float cosNormalLight = max(0.0, dot(ToLightVector, vertexNormal));
   float cosNormalHalf = max(0.0, dot(halfVec, vertexNormal));
